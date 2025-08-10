@@ -9,30 +9,32 @@
     <!-- Шрифт Inter для современного вида -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        /* Эффекты переходов между страницами */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: linear-gradient(to top, #c471f5 0%, #fa71cd 100%);
+        }
         .page-transition-enter { opacity: 0; transform: translateY(20px); }
-        .page-transition-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
+        .page-transition-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms ease-out, transform 300ms ease-out; }
         .page-transition-exit { opacity: 1; transform: translateY(0); }
-        .page-transition-exit-active { opacity: 0; transform: translateY(-20px); transition: opacity 300ms, transform 300ms; }
-        /* Анимация для упражнения на дыхание */
+        .page-transition-exit-active { opacity: 0; transform: translateY(-20px); transition: opacity 300ms ease-in, transform 300ms ease-in; }
         @keyframes breathe {
             0%, 100% { transform: scale(1); opacity: 1; box-shadow: none; }
-            50% { transform: scale(1.5); opacity: 0.7; box-shadow: 0 0 40px rgba(99, 102, 241, 0.5); }
+            50% { transform: scale(1.25); opacity: 0.7; box-shadow: 0 0 40px rgba(255, 255, 255, 0.5); }
         }
         .breathing-animation {
             animation: breathe 10s ease-in-out infinite;
         }
+        input:focus {
+            outline: none !important;
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4) !important;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 antialiased">
+<body class="min-h-screen flex items-center justify-center p-4 antialiased">
     <div id="root" class="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-8 flex flex-col">
         <!-- Контент будет рендериться здесь с помощью JavaScript -->
     </div>
-    
-    <footer class="mt-8 text-center text-gray-400 text-sm w-full max-w-lg">
-        <p>Я не заменяю профессионального терапевта, а лишь предоставляю инструменты для самопомощи.</p>
-    </footer>
 
     <script>
         // Главный контейнер для рендеринга контента
@@ -55,13 +57,13 @@
         // Основная функция для рендеринга контента на основе текущей страницы
         const render = (page) => {
             const pageElement = document.createElement('div');
-            pageElement.className = 'page-transition-enter absolute w-full';
+            pageElement.className = 'page-transition-enter absolute w-full p-4';
 
             // Функция для плавного исчезновения старой страницы
             const transitionOut = () => {
                 const oldPage = root.querySelector('.page-transition-enter-active');
                 if (oldPage) {
-                    oldPage.className = 'page-transition-exit-active';
+                    oldPage.className = 'page-transition-exit-active absolute w-full p-4';
                     setTimeout(() => oldPage.remove(), 300);
                 }
             };
@@ -76,29 +78,29 @@
                         content = `
                             <div class="text-center mb-6">
                                 <h1 class="text-4xl font-extrabold text-gray-800">
-                                    <span class="inline-block h-10 w-10 text-indigo-500 mr-2">🧠</span>
+                                    <span class="inline-block h-10 w-10 text-violet-500 mr-2">🧠</span>
                                     M.H. First Aid
                                 </h1>
                                 <p class="text-gray-500 mt-2 text-lg">Инструменты для самопомощи</p>
                             </div>
                             <p class="text-center text-gray-600 text-xl mb-6">Выбери упражнение, которое тебе сейчас нужно:</p>
                             <div class="grid grid-cols-1 gap-4">
-                                <button onclick="changePage('breathing')" class="flex items-center bg-gray-50 hover:bg-indigo-50 active:bg-indigo-100 transition-colors duration-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-indigo-200">
-                                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-full mr-4 flex-shrink-0">🌬️</div>
+                                <button onclick="changePage('breathing')" class="flex items-center bg-gray-50 hover:bg-violet-50 active:bg-violet-100 transition-colors duration-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-violet-200">
+                                    <div class="bg-violet-100 text-violet-600 p-3 rounded-full mr-4 flex-shrink-0">🌬️</div>
                                     <div class="text-left flex-grow">
                                         <h3 class="text-xl font-bold text-gray-800">Пульс спокойствия</h3>
                                         <p class="text-gray-500 mt-1 text-sm">Упражнение на ритмичное дыхание.</p>
                                     </div>
                                 </button>
-                                <button onclick="changePage('grounding')" class="flex items-center bg-gray-50 hover:bg-indigo-50 active:bg-indigo-100 transition-colors duration-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-indigo-200">
-                                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-full mr-4 flex-shrink-0">👁️‍🗨️</div>
+                                <button onclick="changePage('grounding')" class="flex items-center bg-gray-50 hover:bg-violet-50 active:bg-violet-100 transition-colors duration-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-violet-200">
+                                    <div class="bg-violet-100 text-violet-600 p-3 rounded-full mr-4 flex-shrink-0">👁️‍🗨️</div>
                                     <div class="text-left flex-grow">
                                         <h3 class="text-xl font-bold text-gray-800">Найди 5-4-3-2-1</h3>
                                         <p class="text-gray-500 mt-1 text-sm">Техника заземления, чтобы переключить фокус.</p>
                                     </div>
                                 </button>
-                                <button onclick="changePage('safe_place')" class="flex items-center bg-gray-50 hover:bg-indigo-50 active:bg-indigo-100 transition-colors duration-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-indigo-200">
-                                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-full mr-4 flex-shrink-0">☁️</div>
+                                <button onclick="changePage('safe_place')" class="flex items-center bg-gray-50 hover:bg-violet-50 active:bg-violet-100 transition-colors duration-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-violet-200">
+                                    <div class="bg-violet-100 text-violet-600 p-3 rounded-full mr-4 flex-shrink-0">☁️</div>
                                     <div class="text-left flex-grow">
                                         <h3 class="text-xl font-bold text-gray-800">Безопасное место</h3>
                                         <p class="text-gray-500 mt-1 text-sm">Упражнение на визуализацию для успокоения.</p>
@@ -109,17 +111,20 @@
                         break;
                     case pages.breathing:
                         content = `
-                            <div class="w-full text-center">
-                                <h2 class="text-2xl font-bold text-gray-800 mb-4">Пульс спокойствия</h2>
+                            <div class="w-full text-center p-4">
+                                <h2 class="text-3xl font-bold text-gray-800 mb-4">Пульс спокойствия</h2>
                                 <p class="text-gray-600 mb-8">
                                     Упражнение "Пульс спокойствия" поможет тебе замедлиться. Следуй ритму круга, вдыхай, когда он расширяется, и выдыхай, когда он сжимается.
                                 </p>
-                                <div class="relative w-48 h-48 mb-8 mx-auto">
-                                    <div id="breathing-circle" class="bg-indigo-500 rounded-full w-full h-full transform transition-all duration-1000 ease-in-out"></div>
-                                    <div id="breathing-text" class="absolute inset-0 flex items-center justify-center text-white font-bold text-xl">Начать</div>
+                                <div class="relative w-48 h-48 mb-8 mx-auto bg-violet-500 rounded-full flex items-center justify-center shadow-lg">
+                                    <div id="breathing-circle" class="bg-white rounded-full w-40 h-40 transform transition-all duration-1000 ease-in-out"></div>
+                                    <div id="breathing-text" class="absolute inset-0 flex items-center justify-center text-violet-800 font-extrabold text-2xl drop-shadow-md">Начать</div>
                                 </div>
-                                <button onclick="startBreathing()" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-200 transform hover:-translate-y-1">
+                                <button onclick="startBreathing()" class="bg-violet-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200 transform hover:-translate-y-1">
                                     Начать
+                                </button>
+                                <button onclick="changePage('menu')" class="mt-4 bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200 transform hover:-translate-y-1">
+                                    Вернуться в меню
                                 </button>
                             </div>
                         `;
@@ -134,16 +139,19 @@
                             'Поздравляю, ты справился с упражнением! Надеюсь, это помогло.',
                         ];
                         content = `
-                            <div class="w-full flex flex-col items-center text-center">
-                                <h2 class="text-2xl font-bold text-gray-800 mb-4">Найди 5-4-3-2-1</h2>
+                            <div class="w-full flex flex-col items-center text-center p-4">
+                                <h2 class="text-3xl font-bold text-gray-800 mb-4">Найди 5-4-3-2-1</h2>
                                 <p class="text-gray-600 mb-8">Это упражнение поможет тебе заземлиться и переключить фокус с мыслей на окружающий мир.</p>
-                                <div id="grounding-card" class="bg-indigo-50 p-6 rounded-2xl shadow-inner w-full">
-                                    <h3 class="text-xl font-bold text-indigo-700 mb-4">${groundingSteps[groundingStep]}</h3>
-                                    <input id="grounding-input" type="text" class="w-full p-3 rounded-lg border-2 border-indigo-200 focus:border-indigo-400 focus:outline-none transition-colors duration-200" placeholder="Напиши свой ответ здесь...">
-                                    <button id="grounding-button" onclick="nextGroundingStep()" class="mt-4 w-full bg-indigo-600 text-white font-bold py-3 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-200">
+                                <div id="grounding-card" class="bg-violet-50 p-6 rounded-2xl shadow-inner w-full">
+                                    <h3 class="text-xl font-bold text-violet-700 mb-4">${groundingSteps[groundingStep]}</h3>
+                                    ${groundingStep < 5 ? `<input id="grounding-input" type="text" class="w-full p-3 rounded-lg border-2 border-violet-200 focus:border-violet-400 focus:outline-none transition-colors duration-200" placeholder="Напиши свой ответ здесь...">` : ''}
+                                    <button id="grounding-button" onclick="nextGroundingStep()" class="mt-4 w-full bg-violet-600 text-white font-bold py-3 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200">
                                         ${groundingStep < 5 ? 'Далее' : 'Завершить'}
                                     </button>
                                 </div>
+                                <button onclick="changePage('menu')" class="mt-4 bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200 transform hover:-translate-y-1">
+                                    Вернуться в меню
+                                </button>
                             </div>
                         `;
                         break;
@@ -156,28 +164,31 @@
                         ];
                         if (safePlaceStory.length < safePlaceSteps.length) {
                             content = `
-                                <div class="w-full flex flex-col items-center text-center">
-                                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Безопасное место</h2>
+                                <div class="w-full flex flex-col items-center text-center p-4">
+                                    <h2 class="text-3xl font-bold text-gray-800 mb-4">Безопасное место</h2>
                                     <p class="text-gray-600 mb-8">Мы создадим твое личное безопасное место в воображении. Представь его и ответь на вопросы.</p>
-                                    <div class="bg-indigo-50 p-6 rounded-2xl shadow-inner w-full">
-                                        <h3 class="text-xl font-bold text-indigo-700 mb-4">${safePlaceSteps[safePlaceStory.length]}</h3>
-                                        <input id="safe-place-input" type="text" class="w-full p-3 rounded-lg border-2 border-indigo-200 focus:border-indigo-400 focus:outline-none transition-colors duration-200" placeholder="Напиши свой ответ здесь...">
-                                        <button onclick="nextSafePlaceStep()" class="mt-4 w-full bg-indigo-600 text-white font-bold py-3 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-200">
+                                    <div class="bg-violet-50 p-6 rounded-2xl shadow-inner w-full">
+                                        <h3 class="text-xl font-bold text-violet-700 mb-4">${safePlaceSteps[safePlaceStory.length]}</h3>
+                                        <input id="safe-place-input" type="text" class="w-full p-3 rounded-lg border-2 border-violet-200 focus:border-violet-400 focus:outline-none transition-colors duration-200" placeholder="Напиши свой ответ здесь...">
+                                        <button onclick="nextSafePlaceStep()" class="mt-4 w-full bg-violet-600 text-white font-bold py-3 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200">
                                             ${safePlaceStory.length < safePlaceSteps.length - 1 ? 'Далее' : 'Завершить'}
                                         </button>
                                     </div>
+                                    <button onclick="changePage('menu')" class="mt-4 bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200 transform hover:-translate-y-1">
+                                        Вернуться в меню
+                                    </button>
                                 </div>
                             `;
                         } else {
                             const finalStory = `Твое безопасное место выглядит так: ${safePlaceStory[0]}.\nТы слышишь: ${safePlaceStory[1]}.\nТы чувствуешь запах: ${safePlaceStory[2]}.\nТы чувствуешь: ${safePlaceStory[3]}.\n\nПомни, это твое личное пространство. Возвращайся сюда в любой момент, когда это нужно.`;
                             content = `
-                                <div class="w-full text-center">
-                                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Твоя история</h2>
-                                    <div class="bg-indigo-50 p-6 rounded-2xl shadow-inner text-left whitespace-pre-wrap text-gray-700">
+                                <div class="w-full text-center p-4">
+                                    <h2 class="text-3xl font-bold text-gray-800 mb-4">Твоя история</h2>
+                                    <div class="bg-violet-50 p-6 rounded-2xl shadow-inner text-left whitespace-pre-wrap text-gray-700">
                                         ${finalStory}
                                     </div>
                                     <div class="mt-6 flex flex-col space-y-4">
-                                        <button onclick="changePage('menu')" class="w-full bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-200">
+                                        <button onclick="changePage('menu')" class="w-full bg-violet-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200">
                                             В главное меню
                                         </button>
                                         <button onclick="resetSafePlaceGame()" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200">
@@ -194,7 +205,7 @@
                 root.appendChild(pageElement);
                 // Инициализация фокуса для полей ввода после рендеринга
                 setTimeout(() => {
-                    pageElement.className = 'page-transition-enter-active absolute w-full';
+                    pageElement.className = 'page-transition-enter-active absolute w-full p-4';
                     if (page === pages.grounding) {
                         document.getElementById('grounding-input')?.focus();
                     }
@@ -207,6 +218,10 @@
         
         // Изменение страницы и запуск рендеринга
         const changePage = (pageName) => {
+            if (breathingInterval) {
+                clearInterval(breathingInterval);
+                breathingInterval = null;
+            }
             currentPage = pageName;
             render(currentPage);
         };
@@ -220,11 +235,15 @@
                 clearInterval(breathingInterval);
                 breathingInterval = null;
                 breathingCircle.classList.remove('breathing-animation');
+                breathingCircle.classList.add('bg-white');
+                breathingCircle.classList.remove('bg-violet-500');
                 breathingText.innerText = 'Начать';
                 return;
             }
             
             breathingCircle.classList.add('breathing-animation');
+            breathingCircle.classList.remove('bg-white');
+            breathingCircle.classList.add('bg-violet-500');
             breathingText.innerText = 'Дыши';
 
             breathingInterval = setInterval(() => {
@@ -242,21 +261,23 @@
         // Переход к следующему шагу упражнения "Заземление"
         const nextGroundingStep = () => {
             const input = document.getElementById('grounding-input');
+            if (groundingStep === 5) {
+                groundingStep = 0;
+                changePage(pages.menu);
+                return;
+            }
             if (input && input.value.trim() !== '') {
                 groundingStep++;
-                if (groundingStep > 5) {
-                    groundingStep = 0;
-                    changePage(pages.menu);
-                } else {
-                    render(currentPage);
-                }
+                render(currentPage);
             } else {
-                const card = document.getElementById('grounding-card');
-                const errorMessage = document.createElement('p');
-                errorMessage.className = 'text-red-500 mt-2';
-                errorMessage.innerText = 'Пожалуйста, напиши что-нибудь';
-                card.appendChild(errorMessage);
-                setTimeout(() => errorMessage.remove(), 2000);
+                if (input) {
+                    input.placeholder = 'Пожалуйста, напиши что-нибудь!';
+                    input.classList.add('border-red-500');
+                    setTimeout(() => {
+                        input.placeholder = 'Напиши свой ответ здесь...';
+                        input.classList.remove('border-red-500');
+                    }, 2000);
+                }
             }
         };
 
@@ -267,19 +288,21 @@
                 safePlaceStory.push(input.value);
                 render(currentPage);
             } else {
-                const card = document.getElementById('grounding-card');
-                const errorMessage = document.createElement('p');
-                errorMessage.className = 'text-red-500 mt-2';
-                errorMessage.innerText = 'Пожалуйста, напиши что-нибудь';
-                card.appendChild(errorMessage);
-                setTimeout(() => errorMessage.remove(), 2000);
+                 if (input) {
+                    input.placeholder = 'Пожалуйста, напиши что-нибудь!';
+                    input.classList.add('border-red-500');
+                    setTimeout(() => {
+                        input.placeholder = 'Напиши свой ответ здесь...';
+                        input.classList.remove('border-red-500');
+                    }, 2000);
+                }
             }
         };
 
         // Сброс упражнения "Безопасное место"
         const resetSafePlaceGame = () => {
             safePlaceStory = [];
-            render(currentPage);
+            changePage('safe_place');
         };
 
         // Делаем функции глобально доступными для HTML
