@@ -8,58 +8,87 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Шрифт Inter для современного вида -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+    <!-- Tone.js для генерации звуков -->
+    <script src="https://unpkg.com/tone@14.7.58/build/Tone.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-image: linear-gradient(to top, #c471f5 0%, #fa71cd 100%);
+            background: linear-gradient(to top, #6a11cb 0%, #2575fc 100%);
         }
         .page-transition-enter { opacity: 0; transform: translateY(20px); }
         .page-transition-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms ease-out, transform 300ms ease-out; }
         .page-transition-exit { opacity: 1; transform: translateY(0); }
         .page-transition-exit-active { opacity: 0; transform: translateY(-20px); transition: opacity 300ms ease-in, transform 300ms ease-in; }
-        @keyframes breathe {
-            0%, 100% { transform: scale(1); opacity: 1; box-shadow: none; }
-            50% { transform: scale(1.25); opacity: 0.7; box-shadow: 0 0 40px rgba(255, 255, 255, 0.5); }
+        .breathing-light-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 50px rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .breathing-animation {
-            animation: breathe 10s ease-in-out infinite;
+        .breathing-light {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 70%);
+            animation: lightPulse 10s ease-in-out infinite;
         }
-        input:focus {
-            outline: none !important;
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4) !important;
+        @keyframes lightPulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+        canvas {
+            touch-action: none;
+            cursor: none;
+        }
+        @media (max-width: 640px) {
+            .breathing-light-container {
+                width: 200px;
+                height: 200px;
+            }
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 antialiased">
-    <div id="root" class="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-8 flex flex-col">
+<body class="min-h-screen flex items-center justify-center p-4 antialiased text-gray-800">
+    <div id="root" class="w-full max-w-lg bg-white bg-opacity-95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 flex flex-col">
         <!-- Контент будет рендериться здесь с помощью JavaScript -->
     </div>
-
+    
     <script>
         // Главный контейнер для рендеринга контента
         const root = document.getElementById('root');
         
         // Переменные состояния для отслеживания текущей страницы и хода упражнений
         let currentPage = 'menu';
-        let groundingStep = 0;
-        let safePlaceStory = [];
         let breathingInterval = null;
+        let mazeCanvas, mazeCtx, mazeWidth, mazeHeight, mazePlayerX, mazePlayerY, mazeGrid, mazeCellSize;
+        let soundscapeVolumeControls = {};
         
         // Объект для удобной навигации по страницам
         const pages = {
             menu: 'menu',
             breathing: 'breathing',
-            grounding: 'grounding',
-            safe_place: 'safe_place'
+            maze: 'maze',
+            soundscape: 'soundscape'
         };
 
-        // Основная функция для рендеринга контента на основе текущей страницы
+        // --- УПРАВЛЕНИЕ СТРАНИЦАМИ И СОСТОЯНИЕМ ---
+        
         const render = (page) => {
+            // Очистка интервалов и состояний при смене страницы
+            if (breathingInterval) {
+                clearInterval(breathingInterval);
+                breathingInterval = null;
+            }
+            stopAllSounds();
+
             const pageElement = document.createElement('div');
             pageElement.className = 'page-transition-enter absolute w-full p-4';
-
-            // Функция для плавного исчезновения старой страницы
+            
             const transitionOut = () => {
                 const oldPage = root.querySelector('.page-transition-enter-active');
                 if (oldPage) {
@@ -70,247 +99,384 @@
             
             transitionOut();
 
-            // Рендеринг новой страницы с небольшой задержкой для анимации
             setTimeout(() => {
                 let content = '';
                 switch (page) {
                     case pages.menu:
                         content = `
-                            <div class="text-center mb-6">
-                                <h1 class="text-4xl font-extrabold text-gray-800">
+                            <div class="text-center mb-8">
+                                <h1 class="text-4xl font-extrabold text-blue-900">
                                     <span class="inline-block h-10 w-10 text-violet-500 mr-2">🧠</span>
                                     M.H. First Aid
                                 </h1>
-                                <p class="text-gray-500 mt-2 text-lg">Инструменты для самопомощи</p>
+                                <p class="text-gray-600 mt-2 text-lg">Инструменты для самопомощи</p>
                             </div>
-                            <p class="text-center text-gray-600 text-xl mb-6">Выбери упражнение, которое тебе сейчас нужно:</p>
                             <div class="grid grid-cols-1 gap-4">
-                                <button onclick="changePage('breathing')" class="flex items-center bg-gray-50 hover:bg-violet-50 active:bg-violet-100 transition-colors duration-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-violet-200">
+                                <button onclick="changePage('breathing')" class="flex items-center bg-white hover:bg-violet-50 active:bg-violet-100 transition-colors duration-200 rounded-2xl p-6 shadow-md hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-violet-300">
                                     <div class="bg-violet-100 text-violet-600 p-3 rounded-full mr-4 flex-shrink-0">🌬️</div>
                                     <div class="text-left flex-grow">
-                                        <h3 class="text-xl font-bold text-gray-800">Пульс спокойствия</h3>
-                                        <p class="text-gray-500 mt-1 text-sm">Упражнение на ритмичное дыхание.</p>
+                                        <h3 class="text-xl font-bold">Дыхание Света</h3>
+                                        <p class="text-gray-500 mt-1 text-sm">Визуальная медитация для успокоения дыхания.</p>
                                     </div>
                                 </button>
-                                <button onclick="changePage('grounding')" class="flex items-center bg-gray-50 hover:bg-violet-50 active:bg-violet-100 transition-colors duration-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-violet-200">
-                                    <div class="bg-violet-100 text-violet-600 p-3 rounded-full mr-4 flex-shrink-0">👁️‍🗨️</div>
+                                <button onclick="changePage('maze')" class="flex items-center bg-white hover:bg-violet-50 active:bg-violet-100 transition-colors duration-200 rounded-2xl p-6 shadow-md hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-violet-300">
+                                    <div class="bg-violet-100 text-violet-600 p-3 rounded-full mr-4 flex-shrink-0"> labyrinth </div>
                                     <div class="text-left flex-grow">
-                                        <h3 class="text-xl font-bold text-gray-800">Найди 5-4-3-2-1</h3>
-                                        <p class="text-gray-500 mt-1 text-sm">Техника заземления, чтобы переключить фокус.</p>
+                                        <h3 class="text-xl font-bold">Лабиринт Внимательности</h3>
+                                        <p class="text-gray-500 mt-1 text-sm">Уникальная игра для тренировки фокуса и замедления.</p>
                                     </div>
                                 </button>
-                                <button onclick="changePage('safe_place')" class="flex items-center bg-gray-50 hover:bg-violet-50 active:bg-violet-100 transition-colors duration-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-violet-200">
-                                    <div class="bg-violet-100 text-violet-600 p-3 rounded-full mr-4 flex-shrink-0">☁️</div>
+                                <button onclick="changePage('soundscape')" class="flex items-center bg-white hover:bg-violet-50 active:bg-violet-100 transition-colors duration-200 rounded-2xl p-6 shadow-md hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-violet-300">
+                                    <div class="bg-violet-100 text-violet-600 p-3 rounded-full mr-4 flex-shrink-0">🎧</div>
                                     <div class="text-left flex-grow">
-                                        <h3 class="text-xl font-bold text-gray-800">Безопасное место</h3>
-                                        <p class="text-gray-500 mt-1 text-sm">Упражнение на визуализацию для успокоения.</p>
+                                        <h3 class="text-xl font-bold">Звуки Природы</h3>
+                                        <p class="text-gray-500 mt-1 text-sm">Создай свою успокаивающую звуковую атмосферу.</p>
                                     </div>
                                 </button>
                             </div>
+                            <footer class="mt-8 text-center text-gray-500 text-sm w-full">
+                                <p>Это не замена профессиональному терапевту.</p>
+                            </footer>
                         `;
                         break;
                     case pages.breathing:
                         content = `
-                            <div class="w-full text-center p-4">
-                                <h2 class="text-3xl font-bold text-gray-800 mb-4">Пульс спокойствия</h2>
+                            <div class="w-full text-center flex flex-col items-center p-4">
+                                <h2 class="text-3xl font-bold text-blue-900 mb-4">Дыхание Света</h2>
                                 <p class="text-gray-600 mb-8">
-                                    Упражнение "Пульс спокойствия" поможет тебе замедлиться. Следуй ритму круга, вдыхай, когда он расширяется, и выдыхай, когда он сжимается.
+                                    Вдыхай, когда свет расширяется, и выдыхай, когда он сжимается. Следуй за ним, чтобы найти свой ритм.
                                 </p>
-                                <div class="relative w-48 h-48 mb-8 mx-auto bg-violet-500 rounded-full flex items-center justify-center shadow-lg">
-                                    <div id="breathing-circle" class="bg-white rounded-full w-40 h-40 transform transition-all duration-1000 ease-in-out"></div>
-                                    <div id="breathing-text" class="absolute inset-0 flex items-center justify-center text-violet-800 font-extrabold text-2xl drop-shadow-md">Начать</div>
+                                <div class="breathing-light-container mb-8">
+                                    <div id="breathing-light" class="breathing-light"></div>
+                                    <div id="breathing-text" class="absolute font-extrabold text-2xl text-blue-900">Начать</div>
                                 </div>
-                                <button onclick="startBreathing()" class="bg-violet-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200 transform hover:-translate-y-1">
+                                <button id="breathing-button" onclick="startBreathing()" class="w-full bg-violet-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200 transform hover:-translate-y-1">
                                     Начать
                                 </button>
-                                <button onclick="changePage('menu')" class="mt-4 bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200 transform hover:-translate-y-1">
+                                <button onclick="changePage('menu')" class="mt-4 w-full bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200 transform hover:-translate-y-1">
                                     Вернуться в меню
                                 </button>
                             </div>
                         `;
                         break;
-                    case pages.grounding:
-                        const groundingSteps = [
-                            'Назови <b>пять</b> вещей, которые ты видишь прямо сейчас.',
-                            'Назови <b>четыре</b> вещи, которые ты можешь почувствовать на ощупь.',
-                            'Назови <b>три</b> вещи, которые ты можешь услышать.',
-                            'Назови <b>две</b> вещи, которые ты можешь почувствовать по запаху.',
-                            'Назови <b>одну</b> вещь, которую ты можешь попробовать на вкус.',
-                            'Поздравляю, ты справился с упражнением! Надеюсь, это помогло.',
-                        ];
+                    case pages.maze:
                         content = `
-                            <div class="w-full flex flex-col items-center text-center p-4">
-                                <h2 class="text-3xl font-bold text-gray-800 mb-4">Найди 5-4-3-2-1</h2>
-                                <p class="text-gray-600 mb-8">Это упражнение поможет тебе заземлиться и переключить фокус с мыслей на окружающий мир.</p>
-                                <div id="grounding-card" class="bg-violet-50 p-6 rounded-2xl shadow-inner w-full">
-                                    <h3 class="text-xl font-bold text-violet-700 mb-4">${groundingSteps[groundingStep]}</h3>
-                                    ${groundingStep < 5 ? `<input id="grounding-input" type="text" class="w-full p-3 rounded-lg border-2 border-violet-200 focus:border-violet-400 focus:outline-none transition-colors duration-200" placeholder="Напиши свой ответ здесь...">` : ''}
-                                    <button id="grounding-button" onclick="nextGroundingStep()" class="mt-4 w-full bg-violet-600 text-white font-bold py-3 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200">
-                                        ${groundingStep < 5 ? 'Далее' : 'Завершить'}
-                                    </button>
+                            <div class="w-full text-center flex flex-col items-center p-4">
+                                <h2 class="text-3xl font-bold text-blue-900 mb-4">Лабиринт Внимательности</h2>
+                                <p class="text-gray-600 mb-4">
+                                    Сфокусируйся на пути и медленно двигайся к финишу. Используй стрелки на клавиатуре или проведи пальцем по экрану.
+                                </p>
+                                <div class="relative w-full max-w-sm aspect-square bg-gray-100 rounded-lg shadow-inner border border-gray-300">
+                                    <canvas id="maze-canvas" class="w-full h-full"></canvas>
                                 </div>
-                                <button onclick="changePage('menu')" class="mt-4 bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200 transform hover:-translate-y-1">
-                                    Вернуться в меню
-                                </button>
-                            </div>
-                        `;
-                        break;
-                    case pages.safe_place:
-                        const safePlaceSteps = [
-                            'Опиши свое безопасное место. Что ты там видишь?',
-                            'Какие звуки ты слышишь в этом месте?',
-                            'Какие запахи ты чувствуешь?',
-                            'Какие ощущения у тебя вызывает это место?',
-                        ];
-                        if (safePlaceStory.length < safePlaceSteps.length) {
-                            content = `
-                                <div class="w-full flex flex-col items-center text-center p-4">
-                                    <h2 class="text-3xl font-bold text-gray-800 mb-4">Безопасное место</h2>
-                                    <p class="text-gray-600 mb-8">Мы создадим твое личное безопасное место в воображении. Представь его и ответь на вопросы.</p>
-                                    <div class="bg-violet-50 p-6 rounded-2xl shadow-inner w-full">
-                                        <h3 class="text-xl font-bold text-violet-700 mb-4">${safePlaceSteps[safePlaceStory.length]}</h3>
-                                        <input id="safe-place-input" type="text" class="w-full p-3 rounded-lg border-2 border-violet-200 focus:border-violet-400 focus:outline-none transition-colors duration-200" placeholder="Напиши свой ответ здесь...">
-                                        <button onclick="nextSafePlaceStep()" class="mt-4 w-full bg-violet-600 text-white font-bold py-3 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200">
-                                            ${safePlaceStory.length < safePlaceSteps.length - 1 ? 'Далее' : 'Завершить'}
-                                        </button>
-                                    </div>
-                                    <button onclick="changePage('menu')" class="mt-4 bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200 transform hover:-translate-y-1">
+                                <div class="mt-4 flex space-x-4">
+                                    <button onclick="changePage('menu')" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200 transform hover:-translate-y-1">
                                         Вернуться в меню
                                     </button>
+                                    <button onclick="initMaze()" class="w-full bg-violet-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200 transform hover:-translate-y-1">
+                                        Начать заново
+                                    </button>
                                 </div>
-                            `;
-                        } else {
-                            const finalStory = `Твое безопасное место выглядит так: ${safePlaceStory[0]}.\nТы слышишь: ${safePlaceStory[1]}.\nТы чувствуешь запах: ${safePlaceStory[2]}.\nТы чувствуешь: ${safePlaceStory[3]}.\n\nПомни, это твое личное пространство. Возвращайся сюда в любой момент, когда это нужно.`;
-                            content = `
-                                <div class="w-full text-center p-4">
-                                    <h2 class="text-3xl font-bold text-gray-800 mb-4">Твоя история</h2>
-                                    <div class="bg-violet-50 p-6 rounded-2xl shadow-inner text-left whitespace-pre-wrap text-gray-700">
-                                        ${finalStory}
-                                    </div>
-                                    <div class="mt-6 flex flex-col space-y-4">
-                                        <button onclick="changePage('menu')" class="w-full bg-violet-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-violet-700 transition-colors duration-200">
-                                            В главное меню
-                                        </button>
-                                        <button onclick="resetSafePlaceGame()" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200">
-                                            Начать заново
-                                        </button>
-                                    </div>
+                            </div>
+                        `;
+                        break;
+                    case pages.soundscape:
+                        content = `
+                            <div class="w-full text-center flex flex-col items-center p-4">
+                                <h2 class="text-3xl font-bold text-blue-900 mb-4">Звуки Природы</h2>
+                                <p class="text-gray-600 mb-8">
+                                    Настрой свою идеальную звуковую атмосферу, регулируя громкость разных звуков.
+                                </p>
+                                <div id="sound-controls" class="w-full grid grid-cols-1 gap-6">
+                                    <!-- Элементы управления будут добавлены JavaScript -->
                                 </div>
-                            `;
-                        }
+                                <button onclick="changePage('menu')" class="mt-8 w-full bg-gray-200 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-300 transition-colors duration-200 transform hover:-translate-y-1">
+                                    Вернуться в меню
+                                </button>
+                            </div>
+                        `;
                         break;
                 }
 
                 pageElement.innerHTML = content;
                 root.appendChild(pageElement);
-                // Инициализация фокуса для полей ввода после рендеринга
                 setTimeout(() => {
                     pageElement.className = 'page-transition-enter-active absolute w-full p-4';
-                    if (page === pages.grounding) {
-                        document.getElementById('grounding-input')?.focus();
-                    }
-                    if (page === pages.safe_place && safePlaceStory.length < safePlaceSteps.length) {
-                        document.getElementById('safe-place-input')?.focus();
-                    }
+                    // Запуск логики для конкретной страницы
+                    if (page === pages.maze) initMaze();
+                    if (page === pages.soundscape) initSoundscape();
                 }, 10);
             }, 300);
         };
         
-        // Изменение страницы и запуск рендеринга
         const changePage = (pageName) => {
-            if (breathingInterval) {
-                clearInterval(breathingInterval);
-                breathingInterval = null;
-            }
             currentPage = pageName;
             render(currentPage);
         };
 
-        // Управление анимацией дыхания
+        // --- ЛОГИКА ИГР ---
+
+        // Упражнение "Дыхание Света"
         const startBreathing = () => {
-            const breathingCircle = document.getElementById('breathing-circle');
+            const breathingLight = document.getElementById('breathing-light');
             const breathingText = document.getElementById('breathing-text');
+            const button = document.getElementById('breathing-button');
             
             if (breathingInterval) {
                 clearInterval(breathingInterval);
                 breathingInterval = null;
-                breathingCircle.classList.remove('breathing-animation');
-                breathingCircle.classList.add('bg-white');
-                breathingCircle.classList.remove('bg-violet-500');
+                breathingLight.style.animationPlayState = 'paused';
+                breathingLight.style.animation = 'none';
                 breathingText.innerText = 'Начать';
+                button.innerText = 'Начать';
                 return;
             }
             
-            breathingCircle.classList.add('breathing-animation');
-            breathingCircle.classList.remove('bg-white');
-            breathingCircle.classList.add('bg-violet-500');
+            breathingLight.style.animation = 'lightPulse 10s ease-in-out infinite';
             breathingText.innerText = 'Дыши';
+            button.innerText = 'Остановить';
 
             breathingInterval = setInterval(() => {
-                const animationDuration = 10000; // 10s
                 const now = performance.now();
-                const cycleTime = now % animationDuration;
+                const cycleTime = now % 10000;
                 if (cycleTime < 4000) { // 4s вдох
                     breathingText.innerText = 'Вдох';
-                } else if (cycleTime < 10000) { // 6s выдох
+                } else { // 6s выдох
                     breathingText.innerText = 'Выдох';
                 }
             }, 500);
         };
 
-        // Переход к следующему шагу упражнения "Заземление"
-        const nextGroundingStep = () => {
-            const input = document.getElementById('grounding-input');
-            if (groundingStep === 5) {
-                groundingStep = 0;
-                changePage(pages.menu);
-                return;
-            }
-            if (input && input.value.trim() !== '') {
-                groundingStep++;
-                render(currentPage);
-            } else {
-                if (input) {
-                    input.placeholder = 'Пожалуйста, напиши что-нибудь!';
-                    input.classList.add('border-red-500');
-                    setTimeout(() => {
-                        input.placeholder = 'Напиши свой ответ здесь...';
-                        input.classList.remove('border-red-500');
-                    }, 2000);
+        // Упражнение "Лабиринт Внимательности"
+        const initMaze = () => {
+            mazeCanvas = document.getElementById('maze-canvas');
+            if (!mazeCanvas) return;
+            mazeCtx = mazeCanvas.getContext('2d');
+            const container = mazeCanvas.parentElement;
+            mazeWidth = container.offsetWidth;
+            mazeHeight = container.offsetHeight;
+            mazeCanvas.width = mazeWidth;
+            mazeCanvas.height = mazeHeight;
+            window.addEventListener('resize', () => {
+                mazeWidth = container.offsetWidth;
+                mazeHeight = container.offsetHeight;
+                mazeCanvas.width = mazeWidth;
+                mazeCanvas.height = mazeHeight;
+                // Перегенерация лабиринта или адаптация
+                generateAndDrawMaze();
+            });
+
+            // Параметры лабиринта
+            const cols = 15;
+            const rows = 15;
+            mazeCellSize = mazeWidth / cols;
+            mazePlayerX = 0;
+            mazePlayerY = 0;
+            
+            // Простая генерация лабиринта
+            mazeGrid = [];
+            for (let j = 0; j < rows; j++) {
+                mazeGrid[j] = [];
+                for (let i = 0; i < cols; i++) {
+                    mazeGrid[j][i] = {
+                        walls: { top: true, right: true, bottom: true, left: true },
+                        visited: false
+                    };
                 }
+            }
+            
+            const stack = [];
+            let current = mazeGrid[mazePlayerY][mazePlayerX];
+            current.visited = true;
+            stack.push(current);
+            
+            while (stack.length > 0) {
+                const neighbors = [];
+                const x = mazeGrid[0].indexOf(current);
+                const y = mazeGrid.indexOf(mazeGrid.find(row => row.includes(current)));
+
+                if (y > 0 && !mazeGrid[y - 1][x].visited) neighbors.push(mazeGrid[y - 1][x]);
+                if (x < cols - 1 && !mazeGrid[y][x + 1].visited) neighbors.push(mazeGrid[y][x + 1]);
+                if (y < rows - 1 && !mazeGrid[y + 1][x].visited) neighbors.push(mazeGrid[y + 1][x]);
+                if (x > 0 && !mazeGrid[y][x - 1].visited) neighbors.push(mazeGrid[y][x - 1]);
+                
+                if (neighbors.length > 0) {
+                    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    stack.push(current);
+                    
+                    if (next === mazeGrid[y - 1][x]) { // Top
+                        current.walls.top = false;
+                        next.walls.bottom = false;
+                    } else if (next === mazeGrid[y][x + 1]) { // Right
+                        current.walls.right = false;
+                        next.walls.left = false;
+                    } else if (next === mazeGrid[y + 1][x]) { // Bottom
+                        current.walls.bottom = false;
+                        next.walls.top = false;
+                    } else if (next === mazeGrid[y][x - 1]) { // Left
+                        current.walls.left = false;
+                        next.walls.right = false;
+                    }
+                    
+                    current = next;
+                    current.visited = true;
+                } else {
+                    current = stack.pop();
+                }
+            }
+            
+            generateAndDrawMaze();
+            
+            // Обработчики событий для управления
+            const movePlayer = (dx, dy) => {
+                const newX = mazePlayerX + dx;
+                const newY = mazePlayerY + dy;
+                const currentCell = mazeGrid[mazePlayerY][mazePlayerX];
+                
+                let canMove = false;
+                if (dx === 1 && !currentCell.walls.right) canMove = true;
+                if (dx === -1 && !currentCell.walls.left) canMove = true;
+                if (dy === 1 && !currentCell.walls.bottom) canMove = true;
+                if (dy === -1 && !currentCell.walls.top) canMove = true;
+
+                if (canMove && newX >= 0 && newX < cols && newY >= 0 && newY < rows) {
+                    mazePlayerX = newX;
+                    mazePlayerY = newY;
+                    drawMaze();
+                }
+            };
+            
+            document.addEventListener('keydown', (e) => {
+                if (currentPage !== pages.maze) return;
+                switch (e.key) {
+                    case 'ArrowUp': movePlayer(0, -1); break;
+                    case 'ArrowDown': movePlayer(0, 1); break;
+                    case 'ArrowLeft': movePlayer(-1, 0); break;
+                    case 'ArrowRight': movePlayer(1, 0); break;
+                }
+            });
+
+            // Добавляем поддержку свайпов для мобильных устройств
+            let touchStartX = 0;
+            let touchStartY = 0;
+            
+            mazeCanvas.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, false);
+
+            mazeCanvas.addEventListener('touchend', (e) => {
+                if (currentPage !== pages.maze) return;
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+
+                const dx = touchEndX - touchStartX;
+                const dy = touchEndY - touchStartY;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 0) movePlayer(1, 0); // Swipe right
+                    else movePlayer(-1, 0); // Swipe left
+                } else {
+                    if (dy > 0) movePlayer(0, 1); // Swipe down
+                    else movePlayer(0, -1); // Swipe up
+                }
+            }, false);
+        };
+        
+        const drawMaze = () => {
+            if (!mazeCtx) return;
+            mazeCtx.clearRect(0, 0, mazeCanvas.width, mazeCanvas.height);
+            mazeCtx.lineWidth = 2;
+            mazeCtx.strokeStyle = '#2575fc';
+            
+            for (let j = 0; j < mazeGrid.length; j++) {
+                for (let i = 0; i < mazeGrid[j].length; i++) {
+                    const cell = mazeGrid[j][i];
+                    const x = i * mazeCellSize;
+                    const y = j * mazeCellSize;
+                    
+                    if (cell.walls.top) { mazeCtx.beginPath(); mazeCtx.moveTo(x, y); mazeCtx.lineTo(x + mazeCellSize, y); mazeCtx.stroke(); }
+                    if (cell.walls.right) { mazeCtx.beginPath(); mazeCtx.moveTo(x + mazeCellSize, y); mazeCtx.lineTo(x + mazeCellSize, y + mazeCellSize); mazeCtx.stroke(); }
+                    if (cell.walls.bottom) { mazeCtx.beginPath(); mazeCtx.moveTo(x + mazeCellSize, y + mazeCellSize); mazeCtx.lineTo(x, y + mazeCellSize); mazeCtx.stroke(); }
+                    if (cell.walls.left) { mazeCtx.beginPath(); mazeCtx.moveTo(x, y + mazeCellSize); mazeCtx.lineTo(x, y); mazeCtx.stroke(); }
+                }
+            }
+            
+            // Нарисовать финиш
+            mazeCtx.fillStyle = '#6a11cb';
+            mazeCtx.fillRect(mazeCellSize * (mazeGrid[0].length - 1), mazeCellSize * (mazeGrid.length - 1), mazeCellSize, mazeCellSize);
+            
+            // Нарисовать игрока
+            mazeCtx.fillStyle = '#fa71cd';
+            mazeCtx.beginPath();
+            mazeCtx.arc(mazePlayerX * mazeCellSize + mazeCellSize / 2, mazePlayerY * mazeCellSize + mazeCellSize / 2, mazeCellSize / 4, 0, Math.PI * 2);
+            mazeCtx.fill();
+        };
+
+        const generateAndDrawMaze = () => {
+             // Эта функция будет обновлять размеры и перерисовывать лабиринт.
+             // В текущей реализации она просто вызывает drawMaze.
+             // Для более сложной логики можно добавить тут перегенерацию.
+             drawMaze();
+        };
+
+        // Упражнение "Звуки Природы"
+        const sounds = {
+            rain: new Tone.NoiseSynth().toDestination(),
+            forest: new Tone.Synth().toDestination(),
+            waves: new Tone.AMSynth().toDestination()
+        };
+        const soundNames = {
+            rain: 'Дождь',
+            forest: 'Лес (птицы)',
+            waves: 'Морские волны'
+        };
+
+        const initSoundscape = () => {
+            const controlsContainer = document.getElementById('sound-controls');
+            if (!controlsContainer) return;
+
+            for (const key in sounds) {
+                const sound = sounds[key];
+                const name = soundNames[key];
+                
+                sound.volume.value = -Infinity; // Mute by default
+                sound.triggerAttack();
+
+                const controlElement = document.createElement('div');
+                controlElement.className = 'flex items-center space-x-4';
+                controlElement.innerHTML = `
+                    <div class="flex-shrink-0 w-12 text-2xl">${key === 'rain' ? '🌧️' : key === 'forest' ? '🌳' : '🌊'}</div>
+                    <span class="flex-grow font-bold text-lg">${name}</span>
+                    <input type="range" min="-30" max="0" value="-30" class="flex-grow w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="volume-${key}">
+                `;
+                controlsContainer.appendChild(controlElement);
+                
+                const volumeInput = document.getElementById(`volume-${key}`);
+                soundscapeVolumeControls[key] = volumeInput;
+
+                volumeInput.addEventListener('input', (e) => {
+                    const volume = parseFloat(e.target.value);
+                    if (volume === -30) {
+                        sound.volume.value = -Infinity;
+                    } else {
+                        sound.volume.value = volume;
+                    }
+                });
             }
         };
 
-        // Переход к следующему шагу упражнения "Безопасное место"
-        const nextSafePlaceStep = () => {
-            const input = document.getElementById('safe-place-input');
-            if (input && input.value.trim() !== '') {
-                safePlaceStory.push(input.value);
-                render(currentPage);
-            } else {
-                 if (input) {
-                    input.placeholder = 'Пожалуйста, напиши что-нибудь!';
-                    input.classList.add('border-red-500');
-                    setTimeout(() => {
-                        input.placeholder = 'Напиши свой ответ здесь...';
-                        input.classList.remove('border-red-500');
-                    }, 2000);
-                }
+        const stopAllSounds = () => {
+            for (const key in sounds) {
+                sounds[key].triggerRelease();
             }
-        };
-
-        // Сброс упражнения "Безопасное место"
-        const resetSafePlaceGame = () => {
-            safePlaceStory = [];
-            changePage('safe_place');
         };
 
         // Делаем функции глобально доступными для HTML
         window.changePage = changePage;
         window.startBreathing = startBreathing;
-        window.nextGroundingStep = nextGroundingStep;
-        window.nextSafePlaceStep = nextSafePlaceStep;
-        window.resetSafePlaceGame = resetSafePlaceGame;
+        window.initMaze = initMaze;
+        window.initSoundscape = initSoundscape;
 
         // Запуск рендеринга при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
