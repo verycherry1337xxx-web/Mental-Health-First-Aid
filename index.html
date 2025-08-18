@@ -33,6 +33,7 @@
             min-height: 100vh;
             padding: 0;
             margin: 0;
+            /* Скролл разрешен для всего документа */
             overflow-x: hidden;
             line-height: 1.6;
         }
@@ -374,6 +375,12 @@
             position: relative;
             background: #f8f9fa;
             border-radius: 10px;
+            overflow: hidden;
+            /* Отключаем стандартные жесты браузера (свайпы, пинч и т.д.) внутри контейнера */
+            touch-action: none;
+        }
+        /* Класс, который добавляется к body во время игры в лабиринт для отключения скролла */
+        .no-scroll {
             overflow: hidden;
         }
         .maze-cell {
@@ -787,27 +794,6 @@
             border: 1px solid var(--danger);
             color: var(--danger);
         }
-        /* Фиксированная высота для экрана лабиринта */
-        #maze-screen.screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: linear-gradient(135deg, #e0f7fa, #bbdefb);
-            z-index: 2000;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        #maze-screen .game-screen {
-            height: calc(100vh - 40px); /* 40px для padding */
-            overflow: hidden;
-            margin-bottom: 0;
-        }
-        #maze-screen .back-btn {
-            margin-bottom: 15px;
-        }
     </style>
 </head>
 <body>
@@ -1206,6 +1192,8 @@
             const mazeContainer = document.getElementById('maze-container');
             mazeContainer.removeEventListener('touchstart', handleTouchStart);
             mazeContainer.removeEventListener('touchmove', handleTouchMove);
+            // Убираем класс no-scroll с body при выходе из игры
+            document.body.classList.remove('no-scroll');
             mazeCompleted = false;
             mazeGameStarted = false;
             // Останавливаем таймер
@@ -1353,6 +1341,8 @@
             const mazeContainer = document.getElementById('maze-container');
             mazeContainer.removeEventListener('touchstart', handleTouchStart);
             mazeContainer.removeEventListener('touchmove', handleTouchMove);
+            // Убираем класс no-scroll с body при инициализации
+            document.body.classList.remove('no-scroll');
             // Останавливаем таймер
             if (mazeTimerInterval) {
                 clearInterval(mazeTimerInterval);
@@ -1374,6 +1364,8 @@
                 const mazeContainer = document.getElementById('maze-container');
                 mazeContainer.addEventListener('touchstart', handleTouchStart);
                 mazeContainer.addEventListener('touchmove', handleTouchMove);
+                // Добавляем класс no-scroll к body, чтобы отключить скролл страницы во время игры
+                document.body.classList.add('no-scroll');
                 // Запускаем таймер
                 startMazeTimer();
             }, 100);
@@ -1395,6 +1387,8 @@
                         mazeTimeLeft = 90;
                         updateMazeTimer();
                         startMazeTimer();
+                        // Убедимся, что скролл снова отключен
+                        document.body.classList.add('no-scroll');
                     }, 2000);
                 }
             }, 1000);
@@ -1804,6 +1798,8 @@
                             mazeTimeLeft = 90;
                             updateMazeTimer();
                             startMazeTimer();
+                            // Убедимся, что скролл снова отключен
+                            document.body.classList.add('no-scroll');
                         } else {
                             showMazeMessage('success', 'Вы завершили все уровни! Отличная работа!');
                             // Сброс уровня на 1
