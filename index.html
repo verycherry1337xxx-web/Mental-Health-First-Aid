@@ -33,14 +33,17 @@
             min-height: 100vh;
             padding: 0;
             margin: 0;
-            overflow-x: hidden;
+            overflow: hidden; /* Отключаем скролл для всего body */
             line-height: 1.6;
+            touch-action: none; /* Отключаем стандартные жесты браузера для свайпов */
         }
         .container {
             max-width: 100%;
             margin: 0 auto;
             padding: 20px;
             padding-bottom: 80px;
+            height: 100vh; /* Фиксируем высоту контейнера */
+            overflow: hidden; /* Отключаем скролл внутри контейнера */
         }
         .header {
             text-align: center;
@@ -247,6 +250,8 @@
         .screen {
             display: none;
             animation: fadeIn 0.5s ease;
+            height: 100%;
+            overflow: hidden;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
@@ -282,6 +287,10 @@
             margin-bottom: 80px;
             box-shadow: var(--shadow);
             border: 1px solid rgba(0, 0, 0, 0.05);
+            height: calc(100vh - 120px); /* Высота с учетом нижнего меню */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         .game-header {
             text-align: center;
@@ -375,6 +384,7 @@
             background: #f8f9fa;
             border-radius: 10px;
             overflow: hidden;
+            touch-action: none; /* Отключаем стандартные жесты для контейнера лабиринта */
         }
         .maze-cell {
             position: absolute;
@@ -448,6 +458,13 @@
             color: var(--primary);
             margin: 10px 0;
             font-style: italic;
+        }
+        .maze-instructions {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--dark);
+            margin: 10px 0;
+            opacity: 0.7;
         }
         /* Сбор эмоций */
         .emotions-container {
@@ -706,6 +723,7 @@
             .game-screen {
                 padding: 20px;
                 margin-bottom: 100px;
+                height: calc(100vh - 140px);
             }
             .breathing-circle {
                 width: 200px;
@@ -871,6 +889,7 @@
                 <div class="maze-level">Уровень: <span id="maze-level">1</span>/10</div>
                 <div class="maze-timer">Время: <span id="maze-timer">01:30</span></div>
                 <div class="maze-vision">Видимость: 2 клетки вокруг</div>
+                <div class="maze-instructions">Используйте стрелки, WASD или свайпы для управления</div>
                 <div class="maze-container" id="maze-container">
                     <!-- Лабиринт будет генерироваться здесь -->
                 </div>
@@ -1100,6 +1119,9 @@
         let mazeTimerInterval = null;
         let mazeTimeLeft = 90; // 90 секунд на уровень
         let mazeVision = 2; // Видимость игрока (в клетках)
+        // Переменные для свайпов
+        let touchStartX = 0;
+        let touchStartY = 0;
         // Аффирмации (универсальные для всех)
         const affirmations = [
             "Я достоин(на) любви и уважения",
@@ -1169,8 +1191,11 @@
             updateBreathingTimer();
         }
         function stopMazeGame() {
-            // Останавливаем обработчики клавиш
+            // Останавливаем обработчики клавиш и свайпов
             document.removeEventListener('keydown', handleMazeKey);
+            const mazeContainer = document.getElementById('maze-container');
+            mazeContainer.removeEventListener('touchstart', handleTouchStart);
+            mazeContainer.removeEventListener('touchmove', handleTouchMove);
             mazeCompleted = false;
             mazeGameStarted = false;
             // Останавливаем таймер
@@ -1313,8 +1338,11 @@
             mazeCompleted = false;
             mazeTimeLeft = 90;
             updateMazeTimer();
-            // Останавливаем обработчики клавиш
+            // Останавливаем обработчики клавиш и свайпов
             document.removeEventListener('keydown', handleMazeKey);
+            const mazeContainer = document.getElementById('maze-container');
+            mazeContainer.removeEventListener('touchstart', handleTouchStart);
+            mazeContainer.removeEventListener('touchmove', handleTouchMove);
             // Останавливаем таймер
             if (mazeTimerInterval) {
                 clearInterval(mazeTimerInterval);
@@ -1332,6 +1360,10 @@
                 generateNewMaze();
                 // Добавляем обработчики клавиш
                 document.addEventListener('keydown', handleMazeKey);
+                // Добавляем обработчики свайпов
+                const mazeContainer = document.getElementById('maze-container');
+                mazeContainer.addEventListener('touchstart', handleTouchStart);
+                mazeContainer.addEventListener('touchmove', handleTouchMove);
                 // Запускаем таймер
                 startMazeTimer();
             }, 100);
@@ -1682,17 +1714,43 @@
             });
         }
         
+        // Обработчик клавиш для лабиринта
         function handleMazeKey(event) {
             if (currentScreen !== 'maze' || !mazeGameStarted || mazeCompleted) return;
+            
             let newX = mazePlayer.x;
             let newY = mazePlayer.y;
+            
+            // Обрабатываем стрелки и WASD
             switch(event.key) {
-                case 'ArrowUp': newY--; break;
-                case 'ArrowDown': newY++; break;
-                case 'ArrowLeft': newX--; break;
-                case 'ArrowRight': newX++; break;
-                default: return;
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    newY--;
+                    event.preventDefault();
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    newY++;
+                    event.preventDefault();
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    newX--;
+                    event.preventDefault();
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    newX++;
+                    event.preventDefault();
+                    break;
+                default:
+                    return;
             }
+            
             // Проверяем, можно ли туда двигаться
             if (newX >= 0 && newX < mazeGrid[0].length && 
                 newY >= 0 && newY < mazeGrid.length && 
@@ -1757,6 +1815,53 @@
                 }
             }
         }
+        
+        // Обработчики свайпов
+        function handleTouchStart(event) {
+            if (currentScreen !== 'maze' || !mazeGameStarted || mazeCompleted) return;
+            const firstTouch = event.touches[0];
+            touchStartX = firstTouch.clientX;
+            touchStartY = firstTouch.clientY;
+            event.preventDefault();
+        }
+        
+        function handleTouchMove(event) {
+            if (currentScreen !== 'maze' || !mazeGameStarted || mazeCompleted) return;
+            if (!touchStartX || !touchStartY) return;
+            
+            const touchEndX = event.touches[0].clientX;
+            const touchEndY = event.touches[0].clientY;
+            
+            const diffX = touchStartX - touchEndX;
+            const diffY = touchStartY - touchEndY;
+            
+            // Определяем направление свайпа
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // Горизонтальный свайп
+                if (diffX > 0) {
+                    // Свайп влево
+                    handleMazeKey({key: 'ArrowLeft', preventDefault: () => {}});
+                } else {
+                    // Свайп вправо
+                    handleMazeKey({key: 'ArrowRight', preventDefault: () => {}});
+                }
+            } else {
+                // Вертикальный свайп
+                if (diffY > 0) {
+                    // Свайп вверх
+                    handleMazeKey({key: 'ArrowUp', preventDefault: () => {}});
+                } else {
+                    // Свайп вниз
+                    handleMazeKey({key: 'ArrowDown', preventDefault: () => {}});
+                }
+            }
+            
+            // Сбрасываем начальные координаты
+            touchStartX = 0;
+            touchStartY = 0;
+            event.preventDefault();
+        }
+        
         function showMazeMessage(type, text) {
             const message = document.getElementById('maze-message');
             message.className = 'message ' + type;
