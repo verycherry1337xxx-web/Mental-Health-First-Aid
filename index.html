@@ -33,17 +33,14 @@
             min-height: 100vh;
             padding: 0;
             margin: 0;
-            overflow: hidden; /* Отключаем скролл для всего body */
+            overflow-x: hidden;
             line-height: 1.6;
-            touch-action: none; /* Отключаем стандартные жесты браузера для свайпов */
         }
         .container {
             max-width: 100%;
             margin: 0 auto;
             padding: 20px;
             padding-bottom: 80px;
-            height: 100vh; /* Фиксируем высоту контейнера */
-            overflow: hidden; /* Отключаем скролл внутри контейнера */
         }
         .header {
             text-align: center;
@@ -250,8 +247,6 @@
         .screen {
             display: none;
             animation: fadeIn 0.5s ease;
-            height: 100%;
-            overflow: hidden;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
@@ -287,10 +282,6 @@
             margin-bottom: 80px;
             box-shadow: var(--shadow);
             border: 1px solid rgba(0, 0, 0, 0.05);
-            height: calc(100vh - 120px); /* Высота с учетом нижнего меню */
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
         }
         .game-header {
             text-align: center;
@@ -384,7 +375,6 @@
             background: #f8f9fa;
             border-radius: 10px;
             overflow: hidden;
-            touch-action: none; /* Отключаем стандартные жесты для контейнера лабиринта */
         }
         .maze-cell {
             position: absolute;
@@ -723,7 +713,6 @@
             .game-screen {
                 padding: 20px;
                 margin-bottom: 100px;
-                height: calc(100vh - 140px);
             }
             .breathing-circle {
                 width: 200px;
@@ -797,6 +786,27 @@
             background: rgba(220, 53, 69, 0.2);
             border: 1px solid var(--danger);
             color: var(--danger);
+        }
+        /* Фиксированная высота для экрана лабиринта */
+        #maze-screen.screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #e0f7fa, #bbdefb);
+            z-index: 2000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #maze-screen .game-screen {
+            height: calc(100vh - 40px); /* 40px для padding */
+            overflow: hidden;
+            margin-bottom: 0;
+        }
+        #maze-screen .back-btn {
+            margin-bottom: 15px;
         }
     </style>
 </head>
